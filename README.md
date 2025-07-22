@@ -28,11 +28,11 @@ pip install -r requirements.txt
 
 To run the unit auto selector:
 ```sh
-python unit_auto_selector.py --armor
+python hll_unit_auto_selector.py --armor
 ```
 
 ```sh
-python unit_auto_selector.py --recon
+python hll_unit_auto_selector.py --recon
 ```
 
 ## Running on Linux
@@ -56,11 +56,11 @@ pip install -r requirements.txt
 
 To run the unit auto selector:
 ```sh
-sudo -E $(pwd)/.venv/bin/python ./unit_auto_selector.py --armor
+sudo -E $(pwd)/.venv/bin/python ./hll_unit_auto_selector.py --armor
 ```
 
 ```sh
-sudo -E $(pwd)/.venv/bin/python ./unit_auto_selector.py --recon
+sudo -E $(pwd)/.venv/bin/python ./hll_unit_auto_selector.py --recon
 ```
 
 <small><small><small>Its horrible, I know.</small></small></small>
