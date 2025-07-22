@@ -1,4 +1,4 @@
-# Unit Auto Selector
+# HLL Unit Auto Selector
 
 This script lets you auto create a locked armor or recon unit in [Hell let Loose](https://store.steampowered.com/app/686810/Hell_Let_Loose/).
 
