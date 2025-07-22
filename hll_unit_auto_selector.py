@@ -8,7 +8,7 @@ from pyscreeze import Box
 
 
 def click(x: float, y: float):
-    pyautogui.click(x, y)
+    pyautogui.click(x, y, duration=0.3)
 
 def get_center_of_box(box: Box) -> tuple[float, float]:
     return box.left + (box.width / 2), box.top + (box.height / 2)
