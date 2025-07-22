@@ -67,6 +67,8 @@ def create_unit(unit_type: str) -> bool:
                 create_locked_armor_unit = get_create_locked_armor_unit_box()
                 if create_locked_armor_unit:
                     click_box(create_locked_armor_unit)
+                    time.sleep(0.001)
+                    click_box(create_locked_armor_unit)
                     return True
 
         elif unit_type == "--recon":
@@ -78,6 +80,8 @@ def create_unit(unit_type: str) -> bool:
 
                 create_locked_recon_unit = get_create_locked_recon_unit_box()
                 if create_locked_recon_unit:
+                    click_box(create_locked_recon_unit)
+                    time.sleep(0.001)
                     click_box(create_locked_recon_unit)
                     return True
     
