@@ -85,26 +85,6 @@ def create_unit(unit_type: str) -> bool:
     
     return False
 
-jiggler_is_alive = False
-def jiggler():
-    while jiggler_is_alive:
-        time.sleep(0.075)
-        start_pos = pyautogui.position()
-        pyautogui.moveRel(random.randrange(-10, 10), random.randrange(-10, 10), duration=0.1)
-        time.sleep(0.01)
-        pyautogui.moveTo(start_pos.x, start_pos.y, duration=0.1)
-
-def reset_jiggler(jiggler_thread: threading.Thread) -> threading.Thread:
-    global jiggler_is_alive
-
-    if jiggler_is_alive:
-        jiggler_is_alive = False
-        jiggler_thread.join()
-
-    jiggler_is_alive = True
-    return threading.Thread(target=jiggler)
-
-
 def main(unit_type: str):
     is_running = True
     is_searching = False
@@ -127,28 +107,17 @@ def main(unit_type: str):
     keyboard.add_hotkey("ctrl+f4", set_dead, suppress=True)
     keyboard.add_hotkey("f4", toggle_is_running, suppress=True)
 
-    jiggler_thread = threading.Thread(target=jiggler)
     while is_running:
         time.sleep(0.25)
 
-        if is_searching:
-            jiggler_thread = reset_jiggler(jiggler_thread)
-            jiggler_thread.start()
-
         while is_searching:
-            global jiggler_is_alive
-
             time.sleep(0.001)
 
             if not is_running:
-                jiggler_is_alive = False
-                jiggler_thread.join()
                 break
 
             if create_unit(unit_type):
                 toggle_is_running()
-                jiggler_is_alive = False
-                jiggler_thread.join()
 
 def help():
     print("Unit Auto Selector")
