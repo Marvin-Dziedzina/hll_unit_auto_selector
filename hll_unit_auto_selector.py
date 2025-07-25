@@ -95,7 +95,7 @@ def execute(recording: list[str]):
 def run(path: str):
     is_active = False
 
-    def toggle_is_active():
+    def executes():
         nonlocal is_active
         is_active = not is_active
 
@@ -104,37 +104,15 @@ def run(path: str):
         else:
             print("Idle")
 
-    keyboard.add_hotkey("f4", toggle_is_active, suppress=True)
-
     # Load recording
     recording = []
     with open(path, mode="r") as rec:
         recording = rec.readlines()
 
-    while is_running:
-        time.sleep(0.25)
+    keyboard.add_hotkey("f4", execute, args=[recording], suppress=True)
 
-        while is_active:
-            time.sleep(0.1)
-
-            if not is_running:
-                toggle_is_active()
-
-            try:
-                screen_shot = pyautogui.screenshot()
-                if pyautogui.locate(
-                    CREATE_UNIT_IMG_PATH, screen_shot, grayscale=True, confidence=0.8
-                ) or pyautogui.locate(
-                    JOIN_OR_CREATE_UNIT_IMG_PATH,
-                    screen_shot,
-                    grayscale=True,
-                    confidence=0.8,
-                ):
-                    execute(recording)
-                    if is_active:
-                        toggle_is_active()
-            except:
-                continue
+    while True:
+        keyboard.wait()
 
 
 def main(args: argparse.Namespace):
@@ -147,13 +125,13 @@ def main(args: argparse.Namespace):
     if args.record:
         record(args.record)
     elif args.execute:
+        # Test if screenshot works.
+        pyautogui.screenshot()
+
         run(args.execute)
 
 
 if __name__ == "__main__":
-    # Test if screenshot works.
-    pyautogui.screenshot()
-
     parser = argparse.ArgumentParser(
         prog="hll_unit_auto_selector",
         usage="hll_unit_auto_selector [flag] [path]",
@@ -171,6 +149,8 @@ if __name__ == "__main__":
             It will go idle when the recording was executed. 
         """,
     )
+
+    parser.add_argument("-d", "--display")
 
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument(
