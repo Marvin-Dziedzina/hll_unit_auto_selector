@@ -12,7 +12,7 @@ JOIN_OR_CREATE_UNIT_IMG_PATH = "./assets/join_or_create_unit.png"
 GOTO_MOUSE_POS_COMMAND = "goto"
 CLICK_MOUSE_POS_COMMAND = "click"
 WAIT_COMMAND = "wait"
-DEFAULT_WAIT_TIME = 0.1
+DEFAULT_WAIT_TIME = 0.3
 
 is_running = True
 
