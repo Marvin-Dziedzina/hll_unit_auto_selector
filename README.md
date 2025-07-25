@@ -56,3 +56,7 @@ To run the unit auto selector:
 ```sh
 sudo -E $(pwd)/.venv/bin/python ./hll_unit_auto_selector.py --help
 ```
+
+## Recording
+
+It is recommendet that you use the infantry + button. This is because all other create unit buttons can move but the infantry is always on the same position.
