@@ -18,8 +18,6 @@ is_running = True
 
 
 def record(path: str):
-    screen_size = pyautogui.size()
-
     def add_mouse_pos(rec: io.TextIOWrapper):
         print("Added current mouse position to recording")
         pos = pyautogui.position()
@@ -37,8 +35,9 @@ def record(path: str):
     def wait_for_key_release(key: str):
         while keyboard.is_pressed(key):
             time.sleep(0.002)
-    
-    print(f"Display size: {pyautogui.size().width}x{pyautogui.size().height}")
+
+    screen_size = pyautogui.size()
+    print(f"Display size: {screen_size.width}x{screen_size.height}")
 
     with open(path, mode="w") as rec:
         while is_running:
@@ -59,6 +58,7 @@ def execute(recording: list[str]):
     def get_xy(tokens: list[str]) -> tuple[int, int]:
         return int(tokens[1]), int(tokens[2])
 
+    print("Starting to execute...")
     for i, line in enumerate(recording):
         tokens = line.strip("\n").split(" ")
 
@@ -67,6 +67,8 @@ def execute(recording: list[str]):
         # Ingore empty lines.
         if command == "":
             continue
+
+        print(f"{tokens}")
 
         # Check for all valid commands.
         if command == WAIT_COMMAND:
@@ -87,27 +89,58 @@ def execute(recording: list[str]):
         else:
             sys.exit(f"Invalid command found: {command}, line {i + 1}")
 
+    print("Done executing.")
+
+
 def run(path: str):
+    is_active = False
+
+    def toggle_is_active():
+        nonlocal is_active
+        is_active = not is_active
+
+        if is_active:
+            print("Active")
+        else:
+            print("Idle")
+
+    keyboard.add_hotkey("f4", toggle_is_active, suppress=True)
+
     # Load recording
     recording = []
     with open(path, mode="r") as rec:
         recording = rec.readlines()
 
     while is_running:
-        time.sleep(0.001)
+        time.sleep(0.25)
 
-        try:
-            if pyautogui.locateOnScreen(CREATE_UNIT_IMG_PATH, grayscale=True, confidence=0.9) or pyautogui.locateOnScreen(JOIN_OR_CREATE_UNIT_IMG_PATH, grayscale=True, confidence=0.9):
-                execute(recording)
-        except:
-            continue
+        while is_active:
+            time.sleep(0.1)
+
+            if not is_running:
+                toggle_is_active()
+
+            try:
+                screen_shot = pyautogui.screenshot()
+                if pyautogui.locate(
+                    CREATE_UNIT_IMG_PATH, screen_shot, grayscale=True, confidence=0.8
+                ) or pyautogui.locate(
+                    JOIN_OR_CREATE_UNIT_IMG_PATH,
+                    screen_shot,
+                    grayscale=True,
+                    confidence=0.8,
+                ):
+                    execute(recording)
+                    if is_active:
+                        toggle_is_active()
+            except:
+                continue
 
 
 def main(args: argparse.Namespace):
     def set_dead():
         global is_running
         is_running = False
-        sys.exit("User quitted")
 
     keyboard.add_hotkey("ctrl+f4", set_dead, suppress=True)
 
@@ -118,11 +151,37 @@ def main(args: argparse.Namespace):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_help = True
+    # Test if screenshot works.
+    pyautogui.screenshot()
+
+    parser = argparse.ArgumentParser(
+        prog="hll_unit_auto_selector",
+        usage="hll_unit_auto_selector [flag] [path]",
+        epilog=f"""
+        Recording:
+            CTRL+F1: move the mouse to the current position.
+            CTRL+F2: move to and click on the current mouse position.
+            CTRL+F3: wait for {DEFAULT_WAIT_TIME}. This can be manually changed in the record file.
+            CTRL+F4: save and quit.
+        
+        Executing:
+            F4: Toggle
+            CTRL+F4: quit.
+
+            It will go idle when the recording was executed. 
+        """,
+    )
 
     group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument("--record", type=str, help="Record a new record to the specified file path.")
-    group.add_argument("--execute", type=str, help="Execute the specified file.")
+    group.add_argument(
+        "-r",
+        "--record",
+        metavar="PATH",
+        type=str,
+        help="Record a new record to the specified file path.",
+    )
+    group.add_argument(
+        "-e", "--execute", metavar="PATH", type=str, help="Execute the specified file."
+    )
 
     main(parser.parse_args())
