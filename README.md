@@ -2,6 +2,8 @@
 
 This script lets you auto create a locked armor or recon unit in [Hell let Loose](https://store.steampowered.com/app/686810/Hell_Let_Loose/).
 
+Use a template for different resolutions or create your own (Consider contributing it if its a new resolution).
+
 ## Running on Windows
 
 Create a virtual enviroment:
@@ -28,11 +30,7 @@ pip install -r requirements.txt
 
 To run the unit auto selector:
 ```sh
-python hll_unit_auto_selector.py --armor
-```
-
-```sh
-python hll_unit_auto_selector.py --recon
+python hll_unit_auto_selector.py --help
 ```
 
 ## Running on Linux
@@ -56,11 +54,5 @@ pip install -r requirements.txt
 
 To run the unit auto selector:
 ```sh
-sudo -E $(pwd)/.venv/bin/python ./hll_unit_auto_selector.py --armor
+sudo -E $(pwd)/.venv/bin/python ./hll_unit_auto_selector.py --help
 ```
-
-```sh
-sudo -E $(pwd)/.venv/bin/python ./hll_unit_auto_selector.py --recon
-```
-
-<small><small><small>Its horrible, I know.</small></small></small>

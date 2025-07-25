@@ -1,148 +1,128 @@
 import time
 import sys
-import threading
+import io
+import argparse
 
 import pyautogui
 import keyboard
-import random
 
-from pyscreeze import Box
+CREATE_UNIT_IMG_PATH = "./assets/create_a_unit.png"
+JOIN_OR_CREATE_UNIT_IMG_PATH = "./assets/join_or_create_unit.png"
+
+GOTO_MOUSE_POS_COMMAND = "goto"
+CLICK_MOUSE_POS_COMMAND = "click"
+WAIT_COMMAND = "wait"
+DEFAULT_WAIT_TIME = 0.1
+
+is_running = True
 
 
-def click(x: float, y: float):
-    pyautogui.click(x, y, duration=0.1)
+def record(path: str):
+    screen_size = pyautogui.size()
 
-def get_center_of_box(box: Box) -> tuple[float, float]:
-    return box.left + (box.width / 2), box.top + (box.height / 2)
+    def add_mouse_pos(rec: io.TextIOWrapper):
+        print("Added current mouse position to recording")
+        pos = pyautogui.position()
+        rec.writelines(f"{GOTO_MOUSE_POS_COMMAND} {pos[0]} {pos[1]}\n")
 
-def click_box(box: Box):
-    center = get_center_of_box(box)
-    click(center[0], center[1])
+    def add_click(rec: io.TextIOWrapper):
+        print("Added click on current mouse position to recording")
+        pos = pyautogui.position()
+        rec.writelines(f"{CLICK_MOUSE_POS_COMMAND} {pos[0]} {pos[1]}\n")
 
-def move_to_box(box: Box):
-    center = get_center_of_box(box)
-    pyautogui.moveTo(center[0], center[1])
+    def add_wait(rec: io.TextIOWrapper):
+        print("Added wait time to recording (Don't forget to change the value)")
+        rec.writelines(f"{WAIT_COMMAND} {DEFAULT_WAIT_TIME}\n")
 
-def locate_on_screen(image: str, confidence = 0.8, grayscale: bool = True) -> (Box | None):
-    try:
-        return pyautogui.locateOnScreen(image, confidence=confidence, grayscale=grayscale)
-    except:
-        print(f"{image} not found")
-        return None
-
-def get_create_unit_box() -> (Box | None):
-    return locate_on_screen("./assets/create_unit.png")
-
-def get_armor_card_box() -> (Box | None):
-    armor_card = locate_on_screen("./assets/armor_selector_card.png", 0.8)
-    if armor_card:
-        return armor_card
-    else:
-        return locate_on_screen("./assets/armor_selector_card_highlighted.png", 0.8) 
-
-def get_recon_card_box() -> (Box | None):
-    recon_card = locate_on_screen("./assets/recon_selector_card.png", 0.8)
-    if recon_card:
-        return recon_card
-    else:
-        return locate_on_screen("./assets/recon_selector_card_highlighted.png", 0.8)
-
-def get_create_locked_armor_unit_box() -> (Box | None):
-    return locate_on_screen("./assets/create_locked_armor_unit.png", 0.9)
-
-def get_create_locked_recon_unit_box() -> (Box | None):
-    return locate_on_screen("./assets/create_locked_recon_unit.png", 0.9)
-
-def create_unit(unit_type: str) -> bool:
-    create_unit_box = get_create_unit_box()
-    if create_unit_box:
-        click_box(create_unit_box)
-        time.sleep(0.005)
-
-        if unit_type == "--armor":
-            armor_card_box = get_armor_card_box()
-            if armor_card_box:
-                move_to_box(armor_card_box)
-
-                time.sleep(0.25)
-
-                create_locked_armor_unit = get_create_locked_armor_unit_box()
-                if create_locked_armor_unit:
-                    click_box(create_locked_armor_unit)
-                    return True
-
-        elif unit_type == "--recon":
-            recon_card_box = get_recon_card_box()
-            if recon_card_box:
-                move_to_box(recon_card_box)
-
-                time.sleep(0.25)
-
-                create_locked_recon_unit = get_create_locked_recon_unit_box()
-                if create_locked_recon_unit:
-                    click_box(create_locked_recon_unit)
-                    return True
+    def wait_for_key_release(key: str):
+        while keyboard.is_pressed(key):
+            time.sleep(0.002)
     
-    return False
+    print(f"Display size: {pyautogui.size().width}x{pyautogui.size().height}")
 
-def main(unit_type: str):
-    is_running = True
-    is_searching = False
-
-    def toggle_is_running():
-        nonlocal is_searching
-        is_searching = not is_searching
-
-        if is_searching:
-            print("Active")
-        else:
-            print("Idle")
-
-    def set_dead():
-        nonlocal is_running
-        is_running = False
-
-    time.sleep(1)
-
-    keyboard.add_hotkey("ctrl+f4", set_dead, suppress=True)
-    keyboard.add_hotkey("f4", toggle_is_running, suppress=True)
-
-    while is_running:
-        time.sleep(0.25)
-
-        while is_searching:
+    with open(path, mode="w") as rec:
+        while is_running:
             time.sleep(0.001)
 
-            if not is_running:
-                break
+            if keyboard.is_pressed("ctrl+f1"):
+                add_mouse_pos(rec)
+                wait_for_key_release("ctrl+f1")
+            elif keyboard.is_pressed("ctrl+f2"):
+                add_click(rec)
+                wait_for_key_release("ctrl+f2")
+            elif keyboard.is_pressed("ctrl+f3"):
+                add_wait(rec)
+                wait_for_key_release("ctrl+f3")
 
-            if create_unit(unit_type):
-                toggle_is_running()
 
-def help():
-    print("Unit Auto Selector")
-    print()
-    print("F4 to toggle")
-    print("CTRL+F4 to quit")
-    print()
-    print("--help")
-    print("--armor")
-    print("--recon")
+def execute(recording: list[str]):
+    def get_xy(tokens: list[str]) -> tuple[int, int]:
+        return int(tokens[1]), int(tokens[2])
 
-    exit(0)
+    for i, line in enumerate(recording):
+        tokens = line.strip("\n").split(" ")
+
+        command = tokens[0]
+
+        # Ingore empty lines.
+        if command == "":
+            continue
+
+        # Check for all valid commands.
+        if command == WAIT_COMMAND:
+            sleep_duration = float(tokens[1])
+            print(f"Sleeping for {sleep_duration}")
+            time.sleep(sleep_duration)
+        elif command == GOTO_MOUSE_POS_COMMAND:
+            x, y = get_xy(tokens)
+            print(f"Moving to {x} {y}")
+            pyautogui.moveTo(x, y, duration=0.1)
+        elif command == CLICK_MOUSE_POS_COMMAND:
+            x, y = get_xy(tokens)
+            print(f"Clicking on {x} {y}")
+            pyautogui.click(x, y)
+        elif command == "#":
+            # Ignore comments
+            continue
+        else:
+            sys.exit(f"Invalid command found: {command}, line {i + 1}")
+
+def run(path: str):
+    # Load recording
+    recording = []
+    with open(path, mode="r") as rec:
+        recording = rec.readlines()
+
+    while is_running:
+        time.sleep(0.001)
+
+        try:
+            if pyautogui.locateOnScreen(CREATE_UNIT_IMG_PATH, grayscale=True, confidence=0.9) or pyautogui.locateOnScreen(JOIN_OR_CREATE_UNIT_IMG_PATH, grayscale=True, confidence=0.9):
+                execute(recording)
+        except:
+            continue
+
+
+def main(args: argparse.Namespace):
+    def set_dead():
+        global is_running
+        is_running = False
+        sys.exit("User quitted")
+
+    keyboard.add_hotkey("ctrl+f4", set_dead, suppress=True)
+
+    if args.record:
+        record(args.record)
+    elif args.execute:
+        run(args.execute)
+
 
 if __name__ == "__main__":
-    unit_type = ""
+    parser = argparse.ArgumentParser()
+    parser.add_help = True
 
-    if len(sys.argv) < 2:
-        help()
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument("--record", type=str, help="Record a new record to the specified file path.")
+    group.add_argument("--execute", type=str, help="Execute the specified file.")
 
-    first_arg = sys.argv[1]
-    if first_arg == "--help":
-        help()
-    elif first_arg == "--armor" or first_arg == "--recon":
-        unit_type = first_arg
-    else:
-        help()
-
-    main(unit_type)
+    main(parser.parse_args())
