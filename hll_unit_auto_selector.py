@@ -1,14 +1,9 @@
 import time
 import sys
 import argparse
-import random
 
 import pyautogui
 import keyboard
-
-
-CREATE_UNIT_IMG_PATH = "./assets/create_a_unit.png"
-JOIN_OR_CREATE_UNIT_IMG_PATH = "./assets/join_or_create_unit.png"
 
 GOTO_MOUSE_POS_COMMAND = "goto"
 CLICK_MOUSE_POS_COMMAND = "click"
