@@ -3,6 +3,7 @@ import sys
 import argparse
 
 import pyautogui
+from pytweening import easeOutElastic
 import keyboard
 
 GOTO_MOUSE_POS_COMMAND = "goto"
@@ -19,26 +20,26 @@ def display_screen_size():
 
 
 def record(path: str):
-    def get_instruction_num_str(rec_buf: list[str]) -> str:
+    def instruction_count_str(rec_buf: list[str]) -> str:
         return f"Instruction Number: {len(rec_buf)}"
 
     def add_mouse_pos(rec_buf: list[str]):
         pos = pyautogui.position()
         print(
-            f"Added {GOTO_MOUSE_POS_COMMAND} {pos[0]} {pos[1]}; {get_instruction_num_str(rec_buf)}"
+            f"Added {GOTO_MOUSE_POS_COMMAND} {pos[0]} {pos[1]}; {instruction_count_str(rec_buf)}"
         )
         rec_buf.append(f"{GOTO_MOUSE_POS_COMMAND} {pos[0]} {pos[1]}\n")
 
     def add_click(rec_buf: list[str]):
         pos = pyautogui.position()
         print(
-            f"Added {CLICK_MOUSE_POS_COMMAND} {pos[0]} {pos[1]}; {get_instruction_num_str(rec_buf)}"
+            f"Added {CLICK_MOUSE_POS_COMMAND} {pos[0]} {pos[1]}; {instruction_count_str(rec_buf)}"
         )
         rec_buf.append(f"{CLICK_MOUSE_POS_COMMAND} {pos[0]} {pos[1]}\n")
 
     def add_wait(rec_buf: list[str]):
         print(
-            f"Added {WAIT_COMMAND} {DEFAULT_WAIT_TIME}; {get_instruction_num_str(rec_buf)}; (You can change the duration in the recording file)"
+            f"Added {WAIT_COMMAND} {DEFAULT_WAIT_TIME}; {instruction_count_str(rec_buf)}; (You can change the duration in the recording file)"
         )
         rec_buf.append(f"{WAIT_COMMAND} {DEFAULT_WAIT_TIME}\n")
 
@@ -72,13 +73,14 @@ def execute(recording: list[str]):
 
     print("Starting to execute...")
     for i, line in enumerate(recording):
-        tokens = line.strip("\n").split(" ")
+        line = line.rstrip("\n")
 
-        command = tokens[0]
-
-        # Ingore empty lines.
-        if command == "":
+        # Ingore comments and empty lines .
+        if line.lstrip().startswith("#") or not line.strip():
             continue
+
+        tokens = line.split(" ")
+        command = tokens[0]
 
         # Check for all valid commands.
         if command == WAIT_COMMAND:
@@ -88,14 +90,11 @@ def execute(recording: list[str]):
         elif command == GOTO_MOUSE_POS_COMMAND:
             x, y = get_xy(tokens)
             print(f"Moving to {x} {y}")
-            pyautogui.moveTo(x, y, duration=0.2)
+            pyautogui.moveTo(x, y, duration=0.2, tween=easeOutElastic)
         elif command == CLICK_MOUSE_POS_COMMAND:
             x, y = get_xy(tokens)
             print(f"Clicking on {x} {y}")
-            pyautogui.click(x, y, duration=0.2)
-        elif command == "#":
-            # Ignore comments
-            continue
+            pyautogui.click(x, y, duration=0.2, tween=easeOutElastic)
         else:
             sys.exit(f"Invalid command found: {command}, line {i + 1}")
 
