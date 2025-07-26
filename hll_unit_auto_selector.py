@@ -1,10 +1,11 @@
 import time
 import sys
-import io
 import argparse
+import random
 
 import pyautogui
 import keyboard
+
 
 CREATE_UNIT_IMG_PATH = "./assets/create_a_unit.png"
 JOIN_OR_CREATE_UNIT_IMG_PATH = "./assets/join_or_create_unit.png"
@@ -17,41 +18,57 @@ DEFAULT_WAIT_TIME = 0.3
 is_running = True
 
 
-def record(path: str):
-    def add_mouse_pos(rec: io.TextIOWrapper):
-        print("Added current mouse position to recording")
-        pos = pyautogui.position()
-        rec.writelines(f"{GOTO_MOUSE_POS_COMMAND} {pos[0]} {pos[1]}\n")
-
-    def add_click(rec: io.TextIOWrapper):
-        print("Added click on current mouse position to recording")
-        pos = pyautogui.position()
-        rec.writelines(f"{CLICK_MOUSE_POS_COMMAND} {pos[0]} {pos[1]}\n")
-
-    def add_wait(rec: io.TextIOWrapper):
-        print("Added wait time to recording (Don't forget to change the value)")
-        rec.writelines(f"{WAIT_COMMAND} {DEFAULT_WAIT_TIME}\n")
-
-    def wait_for_key_release(key: str):
-        while keyboard.is_pressed(key):
-            time.sleep(0.002)
-
+def display_screen_size():
     screen_size = pyautogui.size()
     print(f"Display size: {screen_size.width}x{screen_size.height}")
 
-    with open(path, mode="w") as rec:
-        while is_running:
-            time.sleep(0.001)
 
-            if keyboard.is_pressed("ctrl+f1"):
-                add_mouse_pos(rec)
-                wait_for_key_release("ctrl+f1")
-            elif keyboard.is_pressed("ctrl+f2"):
-                add_click(rec)
-                wait_for_key_release("ctrl+f2")
-            elif keyboard.is_pressed("ctrl+f3"):
-                add_wait(rec)
-                wait_for_key_release("ctrl+f3")
+def record(path: str):
+    def get_instruction_num_str(rec_buf: list[str]) -> str:
+        return f"Instruction Number: {len(rec_buf)}"
+
+    def add_mouse_pos(rec_buf: list[str]):
+        pos = pyautogui.position()
+        print(
+            f"Added {GOTO_MOUSE_POS_COMMAND} {pos[0]} {pos[1]}; {get_instruction_num_str(rec_buf)}"
+        )
+        rec_buf.append(f"{GOTO_MOUSE_POS_COMMAND} {pos[0]} {pos[1]}\n")
+
+    def add_click(rec_buf: list[str]):
+        pos = pyautogui.position()
+        print(
+            f"Added {CLICK_MOUSE_POS_COMMAND} {pos[0]} {pos[1]}; {get_instruction_num_str(rec_buf)}"
+        )
+        rec_buf.append(f"{CLICK_MOUSE_POS_COMMAND} {pos[0]} {pos[1]}\n")
+
+    def add_wait(rec_buf: list[str]):
+        print(
+            f"Added {WAIT_COMMAND} {DEFAULT_WAIT_TIME}; {get_instruction_num_str(rec_buf)}; (You can change the duration in the recording file)"
+        )
+        rec_buf.append(f"{WAIT_COMMAND} {DEFAULT_WAIT_TIME}\n")
+
+    def wait_for_key_release(key: str):
+        while keyboard.is_pressed(key):
+            time.sleep(0.01)
+
+    display_screen_size()
+
+    rec_buf = []
+    while is_running:
+        time.sleep(0.01)
+
+        if keyboard.is_pressed("ctrl+f1"):
+            add_mouse_pos(rec_buf)
+            wait_for_key_release("ctrl+f1")
+        elif keyboard.is_pressed("ctrl+f2"):
+            add_click(rec_buf)
+            wait_for_key_release("ctrl+f2")
+        elif keyboard.is_pressed("ctrl+f3"):
+            add_wait(rec_buf)
+            wait_for_key_release("ctrl+f3")
+
+    with open(path, mode="w") as rec:
+        rec.writelines(rec_buf)
 
 
 def execute(recording: list[str]):
@@ -68,21 +85,19 @@ def execute(recording: list[str]):
         if command == "":
             continue
 
-        print(f"{tokens}")
-
         # Check for all valid commands.
         if command == WAIT_COMMAND:
             sleep_duration = float(tokens[1])
-            print(f"Sleeping for {sleep_duration}")
+            print(f"Waiting for {sleep_duration}")
             time.sleep(sleep_duration)
         elif command == GOTO_MOUSE_POS_COMMAND:
             x, y = get_xy(tokens)
             print(f"Moving to {x} {y}")
-            pyautogui.moveTo(x, y, duration=0.1)
+            pyautogui.moveTo(x, y, duration=0.2)
         elif command == CLICK_MOUSE_POS_COMMAND:
             x, y = get_xy(tokens)
             print(f"Clicking on {x} {y}")
-            pyautogui.click(x, y)
+            pyautogui.click(x, y, duration=0.2)
         elif command == "#":
             # Ignore comments
             continue
@@ -93,26 +108,15 @@ def execute(recording: list[str]):
 
 
 def run(path: str):
-    is_active = False
-
-    def executes():
-        nonlocal is_active
-        is_active = not is_active
-
-        if is_active:
-            print("Active")
-        else:
-            print("Idle")
-
     # Load recording
     recording = []
     with open(path, mode="r") as rec:
         recording = rec.readlines()
 
-    keyboard.add_hotkey("f4", execute, args=[recording], suppress=True)
+    keyboard.add_hotkey("f4", execute, args=(recording,), suppress=True)
 
-    while True:
-        keyboard.wait()
+    while is_running:
+        keyboard.wait("ctrl+f4")
 
 
 def main(args: argparse.Namespace):
@@ -125,16 +129,15 @@ def main(args: argparse.Namespace):
     if args.record:
         record(args.record)
     elif args.execute:
-        # Test if screenshot works.
-        pyautogui.screenshot()
-
         run(args.execute)
+    elif args.size:
+        display_screen_size()
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         prog="hll_unit_auto_selector",
-        usage="hll_unit_auto_selector [flag] [path]",
+        usage="hll_unit_auto_selector [ARGUMENT] [PATH]",
         epilog=f"""
         Recording:
             CTRL+F1: move the mouse to the current position.
@@ -143,14 +146,10 @@ if __name__ == "__main__":
             CTRL+F4: save and quit.
         
         Executing:
-            F4: Toggle
-            CTRL+F4: quit.
-
-            It will go idle when the recording was executed. 
+            F4: Execute
+            CTRL+F4: quit. 
         """,
     )
-
-    parser.add_argument("-d", "--display")
 
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument(
@@ -163,5 +162,6 @@ if __name__ == "__main__":
     group.add_argument(
         "-e", "--execute", metavar="PATH", type=str, help="Execute the specified file."
     )
+    group.add_argument("-s", "--size", action="store_true")
 
     main(parser.parse_args())
